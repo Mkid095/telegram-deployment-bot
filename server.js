@@ -68,10 +68,8 @@ app.get('/schema', async (req, res) => {
 const pgSettings = (req) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    // Use postgres role for unauthenticated requests
-    return {
-      role: 'postgres'
-    };
+    // No auth - just return empty object to use connection's default role
+    return {};
   }
 
   const token = authHeader.substring(7);
@@ -79,14 +77,12 @@ const pgSettings = (req) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     return {
-      role: 'postgres',
+      // Set local variables for RLS policies
       'user.id': String(decoded.userId),
       'user.tenant_id': decoded.tenantId
     };
   } catch (error) {
-    return {
-      role: 'postgres'
-    };
+    return {};
   }
 };
 
