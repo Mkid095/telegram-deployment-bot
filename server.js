@@ -68,8 +68,9 @@ app.get('/schema', async (req, res) => {
 const pgSettings = (req) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Use postgres role for unauthenticated requests
     return {
-      role: 'anon'
+      role: 'postgres'
     };
   }
 
@@ -78,13 +79,13 @@ const pgSettings = (req) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     return {
-      role: decoded.role || 'user',
+      role: 'postgres',
       'user.id': String(decoded.userId),
       'user.tenant_id': decoded.tenantId
     };
   } catch (error) {
     return {
-      role: 'anon'
+      role: 'postgres'
     };
   }
 };
