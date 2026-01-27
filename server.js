@@ -2,6 +2,7 @@ const express = require('express');
 const { postgraphile } = require('postgraphile');
 const { Pool } = require('pg');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const app = express();
@@ -63,7 +64,32 @@ app.get('/schema', async (req, res) => {
   }
 });
 
-// Postgraphile middleware
+// JWT pgSettings function for RLS
+const pgSettings = (req) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return {
+      role: 'anon'
+    };
+  }
+
+  const token = authHeader.substring(7);
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return {
+      role: decoded.role || 'user',
+      'user.id': String(decoded.userId),
+      'user.tenant_id': decoded.tenantId
+    };
+  } catch (error) {
+    return {
+      role: 'anon'
+    };
+  }
+};
+
+// Initialize Postgraphile
 const middleware = postgraphile(pgPool, 'public', {
   // GraphQL route
   graphqlRoute: '/graphql',
@@ -99,40 +125,12 @@ const middleware = postgraphile(pgPool, 'public', {
   // Show error stack (disable in production)
   showErrorStack: true,
 
-  // Allow EXPLAIN (admin only)
-  allowExplain: () => true,
-
   // JWT authentication options
   jwtSecret: JWT_SECRET,
   jwtPgTypeIdentifier: 'jwt_token',
 
   // PgSettings function for RLS
-  pgSettings: async (req) => {
-    // Extract Authorization header
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return {
-        role: 'anon'
-      };
-    }
-
-    const token = authHeader.substring(7);
-
-    try {
-      const jwt = require('jsonwebtoken');
-      const decoded = jwt.verify(token, JWT_SECRET);
-
-      return {
-        role: decoded.role || 'user',
-        'user.id': String(decoded.userId),
-        'user.tenant_id': decoded.tenantId
-      };
-    } catch (error) {
-      return {
-        role: 'anon'
-      };
-    }
-  }
+  pgSettings: pgSettings
 });
 
 // Apply Postgraphile middleware
