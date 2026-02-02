@@ -1,16 +1,16 @@
 services:
-  graphql:
+  telegram-bot:
     build: .
-    container_name: nextmavens-graphql
+    # container_name: nextmavens-telegram-bot
     env_file:
       - .env
     environment:
-      - PORT=${PORT:-4004}
-      - DATABASE_URL=${DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
-      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=${PORT:-3002}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - TELEGRAM_CHANNEL_ID=${TELEGRAM_CHANNEL_ID}
     ports:
-      - "4004:4004"
+      - "3005:3002"
     restart: unless-stopped
     networks:
       - dokploy-network
